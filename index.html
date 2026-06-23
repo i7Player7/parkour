@@ -96,7 +96,11 @@
         connectWebSocket();
 
         function connectWebSocket() {
-            ws = new WebSocket('ws://localhost:8080');
+            // Automatically switch between ws:// (local) and wss:// (Render/HTTPS)
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const serverUrl = protocol + '//' + window.location.host;
+            
+            ws = new WebSocket(serverUrl);
             ws.onmessage = handleNetworkMessage;
             ws.onerror = () => console.log("Running in offline server sandbox state.");
         }
@@ -304,7 +308,6 @@
             document.getElementById('game-hud').style.display = "block";
             document.getElementById('game-hud').innerText = `Mode: Offline Solo | Checkpoint: Start`;
             
-            // BUGFIX: Lock settings changes while game loop runs
             nameInput.disabled = true; colorInput.disabled = true;
 
             currentCheckpointPos.set(0, 1.8, 6); 
@@ -452,7 +455,6 @@
             setTimeout(() => box.style.display = "none", 4000);
         }
 
-        // --- PHYSICS SYSTEMS ---
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false;
         const player = {
             height: 1.8, velocity: new THREE.Vector3(), inputDirection: new THREE.Vector3(),
@@ -467,7 +469,7 @@
         function resetPlayerPosition() {
             camera.position.copy(currentCheckpointPos);
             player.velocity.set(0, 0, 0); yaw = 0; pitch = 0; camera.rotation.set(0, 0, 0);
-            moveForward = moveBackward = moveLeft = moveRight = false; // BUGFIX: Prevent input bleed on respawn
+            moveForward = moveBackward = moveLeft = moveRight = false; 
         }
 
         document.addEventListener('keydown', (e) => {
@@ -504,7 +506,6 @@
         let lastSocketUpdate = 0;
 
         function updatePhysics() {
-            // BUGFIX: If the player isn't racing yet, freeze velocity accumulation to prevent pre-lobby rocket launch exploits
             if(!isRacing) {
                 player.velocity.set(0, 0, 0);
                 return;

@@ -1,0 +1,16 @@
+{
+  "name": "multiplayer-parkour",
+  "version": "1.0.0",
+  "description": "3D Racing Gauntlet",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "uuid": "^9.0.1",
+    "ws": "^8.16.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

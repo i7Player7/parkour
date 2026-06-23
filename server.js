@@ -1,8 +1,32 @@
 const { WebSocketServer } = require('ws');
 const { v4: uuidv4 } = require('uuid');
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
-const wss = new WebSocketServer({ port: 8080 });
-console.log('Multiplayer Parkour Server running on ws://localhost:8080');
+// Use Render's provided PORT environment variable, or fallback to 8080 locally
+const port = process.env.PORT || 8080;
+
+// Create an HTTP server to serve your index.html file
+const server = http.createServer((req, res) => {
+    if (req.url === '/' || req.url === '/index.html') {
+        fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
+            if (err) {
+                res.writeHead(500);
+                return res.end('Error loading game client');
+            }
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(data);
+        });
+    } else {
+        res.writeHead(404);
+        res.end('Not found');
+    }
+});
+
+// Attach the WebSocket server to the HTTP server
+const wss = new WebSocketServer({ server });
+console.log('Multiplayer Parkour Server spinning up...');
 
 const rooms = {}; 
 
@@ -73,7 +97,7 @@ wss.on('connection', (ws) => {
                         rooms[currentRoomId].players[playerId].name = data.name;
                         rooms[currentRoomId].players[playerId].color = data.color;
                         
-                        // BUGFIX: Exclude sender from receiving their own reflection
+                        // Exclude sender from receiving their own reflection
                         broadcastToRoom(currentRoomId, { 
                             type: 'player_moved', 
                             playerId, 
@@ -107,7 +131,7 @@ wss.on('connection', (ws) => {
     });
 });
 
-// BUGFIX: Room isolation engine added. Now only pushes data to clients sharing the exact same Room ID instance variable map.
+// Room isolation engine: Pushes data only to clients sharing the exact same Room ID
 function broadcastToRoom(roomId, payload, excludeId = null) {
     if (!rooms[roomId]) return;
     const rawPayload = JSON.stringify(payload);
@@ -151,3 +175,8 @@ function generateProceduralSeeds() {
     seeds.push({ w: 4, h: 4, d: 4, x: lastX + (Math.random()*2-1), y: lastY + 0.5, z: lastZ - 15.0, isGoal: true });
     return seeds;
 }
+
+// Start listening on the port
+server.listen(port, () => {
+    console.log(`Server successfully running on port ${port}`);
+});
